@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>ChaosTech NSD Radar Prototype</title>
+
+    <style>
+      body {
+        background-color: #000;
+        color: #0f0;
+        font-family: Arial, sans-serif;
+      }
+
+      h1 {
+        margin-left: 10px;
+      }
+
+      #about {
+        margin-left: 10px;
+        margin-bottom: 10px;
+        padding: 8px;
+        border: 1px solid #0f0;
+        max-width: 420px;
+        font-size: 0.9em;
+      }
+
+      #mainRow {
+        display: flex;
+        flex-direction: row;
+        align-items: flex-start;
+      }
+
+      #leftCol {
+        display: inline-block;
+      }
+
+      #rightCol {
+        display: inline-block;
+        margin-left: 20px;
+        font-size: 0.85em;
+      }
+
+      #map {
+        position: relative;
+        width: 400px;
+        height: 400px;
+        border: 2px solid #0f0;
+        margin: 10px;
+        background: radial-gradient(circle at center, #003300 0, #000000 70%);
+        overflow: hidden;
+      }
+
+      #zoomMap {
+        position: relative;
+        width: 200px;
+        height: 200px;
+        border: 1px solid #0f0;
+        margin-top: 10px;
+        background: radial-gradient(circle at center, #003300 0, #000000 70%);
+        overflow: hidden;
+      }
+
+      .drone-dot,
+      .drone-icon {
+        position: absolute;
+      }
+
+      .dot-circle {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+      }
+
+      .dot-square {
+        width: 10px;
+        height: 10px;
+        background-color: #fff;
+      }
+
+      .dot-diamond {
+        width: 10px;
+        height: 10px;
+        background-color: #fff;
+        transform: rotate(45deg);
+      }
+
+      .dot-triangle {
+        width: 0;
+        height: 0;
+        border-left: 6px solid transparent;
+        border-right: 6px solid transparent;
+        border-bottom: 10px solid cyan;
+      }
+
+      .trail-dot {
+        position: absolute;
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background-color: rgba(0, 255, 0, 0.3);
+      }
+
+      .radar-circle {
+        position: absolute;
+        border: 1px solid rgba(0, 255, 0, 0.3);
+        border-radius: 50%;
+      }
+
+      .radar-line {
+        position: absolute;
+        width: 2px;
+        height: 400px;
+        background: linear-gradient(
+          to bottom,
+          rgba(0, 255, 0, 0.7),
+          rgba(0, 255, 0, 0)
+        );
+        transform-origin: bottom center;
+      }
+
+      button {
+        margin-left: 10px;
+        margin-top: 5px;
+        margin-bottom: 5px;
+      }
+
+      #controls {
+        margin-left: 10px;
+        margin-bottom: 10px;
+        padding: 8px;
+        border: 1px solid #0f0;
+        max-width: 420px;
+        font-size: 0.9em;
+      }
+
+      #controls label {
+        display: block;
+        margin-top: 4px;
+      }
+
+      #controls input[type="range"] {
+        width: 200px;
+      }
+
+      #legend {
+        margin-left: 10px;
+        margin-bottom: 10px;
+        padding: 6px;
+        border: 1px solid #0f0;
+        max-width: 260px;
+        font-size: 0.85em;
+      }
+
+      .legend-box {
+        display: inline-block;
+        width: 14px;
+        height: 10px;
+        margin-right: 6px;
+      }
+
+      .legend-box.high {
+        background-color: red;
+      }
+
+      .legend-box.medium {
+        background-color: yellow;
+      }
+
+      .legend-box.low {
+        background-color: lime;
+      }
+
+      .legend-box.safe {
+        background-color: #004400;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>ChaosTech NSD Radar Prototype</h1>
+
+    <div id="about">
+      <strong>About</strong><br />
+      Real-time simulation of moving drones scored by a rule-based AI core with
+      adjustable sensitivity (RF, geometry, speed). Use the controls and
+      scenarios to explore how threat assessment changes.
+    </div>
+
+    <button id="calmBtn">Calm airspace</button>
+    <button id="attackBtn">Attack run</button>
+    <button id="pauseBtn">Pause</button>
+    <button id="jamBtn">Jam selected drone</button>
+    <span
+      id="disruptModeLabel"
+      style="margin-left:10px; font-size:0.9em; cursor:pointer;"
+    >
+      Mode: Land in place
+    </span>
+    <br /><br />
+
+    <div id="controls">
+      <strong>AI Sensitivity Controls</strong>
+      <label>
+        RF weight:
+        <input id="rfWeight" type="range" min="0" max="2" step="0.1" value="1" />
+        <span id="rfWeightValue">1.0</span>
+      </label>
+      <label>
+        Center weight:
+        <input
+          id="centerWeight"
+          type="range"
+          min="0"
+          max="2"
+          step="0.1"
+          value="1"
+        />
+        <span id="centerWeightValue">1.0</span>
+      </label>
+      <label>
+        Speed weight:
+        <input
+          id="speedWeight"
+          type="range"
+          min="0"
+          max="2"
+          step="0.1"
+          value="1"
+        />
+        <span id="speedWeightValue">1.0</span>
+      </label>
+    </div>
+
+    <div
+      id="statusBar"
+      style="margin-left:10px; margin-bottom:4px; font-size:0.9em;"
+    >
+      Active: 0 | Jammed: 0 | Neutralized: 0
+    </div>
+
+    <div
+      id="statsBar"
+      style="margin-left:10px; margin-bottom:8px; font-size:0.9em;"
+    >
+      Run time: 0 s | Neutralized: 0 | Max concurrent intruders: 0
+    </div>
+
+    <div id="mainRow">
+      <div id="leftCol">
+        <div id="map"></div>
+
+        <div id="legend">
+          <strong>Threat Legend</strong><br />
+          <span class="legend-box high"></span> High (score ≥ 70)<br />
+          <span class="legend-box medium"></span> Medium (40–69)<br />
+          <span class="legend-box low"></span> Low (10–39)<br />
+          <span class="legend-box safe"></span> Safe (&lt; 10)
+        </div>
+      </div>
+
+      <div id="rightCol">
+        <strong>Inner ring zoom</strong>
+        <div id="zoomMap"></div>
+        <div style="margin-top:6px;">
+          ■ = Landed<br />
+          ◆ = Returned<br />
+          ▲ = Jammed<br />
+          ● = Active
+        </div>
+      </div>
+    </div>
+
+    <h2 style="margin-left:10px;">Event Log</h2>
+    <div
+      id="log"
+      style="margin-left:10px; max-height:150px; overflow-y:auto; font-size:0.9em;"
+    ></div>
+
+    <script src="ai_core.js"></script>
+    <script src="scenarios.js"></script>
+    <script src="radar_ui.js"></script>
+  </body>
+</html>
