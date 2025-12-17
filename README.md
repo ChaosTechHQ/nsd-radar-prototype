@@ -1,27 +1,43 @@
-# NSD Drone Brain Demo
+# ChaosTech NSD Radar Prototype
 
-A tiny web demo that shows an AI "drone brain" deciding if drones are SAFE or THREAT.
+Real-time counter‑drone sandbox that simulates multiple drones, scores their threat level, and lets an operator jam/neutralize intruders around a protected base. [web:325][web:330]
 
-## What this project does
+## What it shows
 
-- `ai_core.js` contains a function `decideDroneStatus(drone)` that:
-  - Reads fields like distance, speed (and later RF strength).
-  - Applies simple rules to label each drone as `"SAFE"` or `"THREAT"`.
-  - Returns both a `status` and a `reason`.
+- **Dynamic radar UI** with moving drone tracks, trails, and a rotating sweep.
+- **Rule-based AI core** that scores threat by RF strength, geometry (distance to center), and speed.
+- **Automatic & manual disruption**:
+  - Auto-jam when a drone’s score crosses a threshold.
+  - Click a track and use **Jam selected drone** to trigger manual jamming.
+  - Jammed drones either **land in place** or **return to home**, depending on mode.
+- **Protected base & no‑fly bubble**:
+  - Central white square = critical asset.
+  - Red inner ring = no‑fly radius.
+  - Breach events are logged when drones penetrate the bubble.
+- **Inner-ring zoom** panel that magnifies only the closest tracks.
+- **Live effectiveness stats**:
+  - Active / Jammed / Neutralized counts.
+  - Run time, total neutralized, max concurrent intruders.
+  - Breaches, stopped after breach, and drones that reached the base.
 
-- `index.html`:
-  - Loads `ai_core.js` in the browser.
-  - Calls `decideDroneStatus` for three example drones.
-  - Shows the status and reason text on the page.
-  - Colors threats red and safe drones green.
+## How to run
 
-## How to run it
+1. Clone or download this repo.
+2. Open `index.html` in a modern browser (Chrome/Edge/Firefox). No build step, no backend. [web:254]
+3. For best results, view on desktop or laptop.
 
-- Open the `index.html` file in a web browser (for example, Chrome).
-- You will see the drone decisions on the page.
+## How to play with it
 
-## Next ideas
+1. Start with **Calm airspace** to see benign traffic.
+2. Click **Attack run** to spawn multiple hostile drones.
+3. Adjust the **RF / Center / Speed** sliders to change how aggressive the AI is.
+4. Click a drone’s status line to mark it `[SELECTED]`, then press **Jam selected drone**.
+5. Toggle disruption mode between **Land in place** and **Return to home** and watch how dots and stats change.
 
-- Add more inputs (altitude, RF strength, swarm size).
-- Add more drones and rules.
-- Turn each drone into a colored dot on a 2D map.
+## Files
+
+- `index.html` – UI layout, styles, and wiring of JS files.
+- `ai_core.js` – Rule-based threat scoring logic.
+- `scenarios.js` – Calm and attack drone scenarios.
+- `radar_ui.js` – Radar visualization, animation loop, disruption logic, stats, and logs.
+
