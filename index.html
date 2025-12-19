@@ -24,10 +24,30 @@
         font-size: 0.9em;
       }
 
+      /* Top controls */
+      nav#topControls {
+        margin-left: 10px;
+        margin-bottom: 10px;
+      }
+
+      button {
+        margin-right: 6px;
+        margin-top: 5px;
+        margin-bottom: 5px;
+      }
+
+      #disruptModeLabel {
+        margin-left: 10px;
+        font-size: 0.9em;
+        cursor: pointer;
+      }
+
+      /* Layout */
       #mainRow {
         display: flex;
         flex-direction: row;
         align-items: flex-start;
+        flex-wrap: wrap;
       }
 
       #leftCol {
@@ -40,10 +60,13 @@
         font-size: 0.85em;
       }
 
+      /* Radar & zoom – now responsive-ish */
       #map {
         position: relative;
-        width: 400px;
-        height: 400px;
+        width: 60vw;
+        max-width: 400px;
+        height: 60vw;
+        max-height: 400px;
         border: 2px solid #0f0;
         margin: 10px;
         background: radial-gradient(circle at center, #003300 0, #000000 70%);
@@ -52,8 +75,10 @@
 
       #zoomMap {
         position: relative;
-        width: 200px;
-        height: 200px;
+        width: 40vw;
+        max-width: 200px;
+        height: 40vw;
+        max-height: 200px;
         border: 1px solid #0f0;
         margin-top: 10px;
         background: radial-gradient(circle at center, #003300 0, #000000 70%);
@@ -116,14 +141,20 @@
           rgba(0, 255, 0, 0)
         );
         transform-origin: bottom center;
+        /* Optional CSS sweep – remove if JS controls rotation */
+        animation: sweep 2s linear infinite;
       }
 
-      button {
-        margin-left: 10px;
-        margin-top: 5px;
-        margin-bottom: 5px;
+      @keyframes sweep {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
       }
 
+      /* Controls panel */
       #controls {
         margin-left: 10px;
         margin-bottom: 10px;
@@ -142,6 +173,17 @@
         width: 200px;
       }
 
+      /* Scenario editor */
+      #scenarioEditor {
+        margin-left: 10px;
+        margin-bottom: 8px;
+        padding: 8px;
+        border: 1px solid #0f0;
+        max-width: 420px;
+        font-size: 0.9em;
+      }
+
+      /* Legend / status */
       #legend {
         margin-left: 10px;
         margin-bottom: 10px;
@@ -173,36 +215,85 @@
       .legend-box.safe {
         background-color: #004400;
       }
+
+      /* Status / stats */
+      #statusBar,
+      #statsBar {
+        margin-left: 10px;
+        font-size: 0.9em;
+      }
+
+      #statusBar {
+        margin-bottom: 4px;
+      }
+
+      #statsBar {
+        margin-bottom: 8px;
+      }
+
+      /* Event log */
+      #log {
+        margin-left: 10px;
+        max-height: 150px;
+        overflow-y: auto;
+        font-size: 0.9em;
+      }
+
+      /* Small screens */
+      @media (max-width: 768px) {
+        #mainRow {
+          flex-direction: column;
+        }
+
+        #rightCol {
+          margin-left: 10px;
+          margin-top: 10px;
+        }
+
+        #map {
+          width: 90vw;
+          height: 90vw;
+        }
+
+        #zoomMap {
+          width: 70vw;
+          height: 70vw;
+        }
+      }
     </style>
   </head>
 
   <body>
     <h1>ChaosTech NSD Radar Prototype</h1>
 
-    <div id="about">
+    <section id="about">
       <strong>About</strong><br />
       Real-time simulation of moving drones scored by a rule-based AI core with
       adjustable sensitivity (RF, geometry, speed). Use the controls and
       scenarios to explore how threat assessment changes.
-    </div>
+    </section>
 
-    <button id="calmBtn">Calm airspace</button>
-    <button id="attackBtn">Attack run</button>
-    <button id="pauseBtn">Pause</button>
-    <button id="jamBtn">Jam selected drone</button>
-    <span
-      id="disruptModeLabel"
-      style="margin-left:10px; font-size:0.9em; cursor:pointer;"
-    >
-      Mode: Land in place
-    </span>
-    <br /><br />
+    <nav id="topControls" aria-label="Simulation controls">
+      <button id="calmBtn">Calm airspace</button>
+      <button id="attackBtn">Attack run</button>
+      <button id="pauseBtn">Pause</button>
+      <button id="jamBtn">Jam selected drone</button>
+      <span id="disruptModeLabel">Mode: Land in place</span>
+    </nav>
 
-    <div id="controls">
+    <section id="controls" aria-label="AI sensitivity controls">
       <strong>AI Sensitivity Controls</strong>
       <label>
         RF weight:
-        <input id="rfWeight" type="range" min="0" max="2" step="0.1" value="1" />
+        <input
+          id="rfWeight"
+          type="range"
+          min="0"
+          max="2"
+          step="0.1"
+          value="1"
+          aria-label="RF weight"
+        />
         <span id="rfWeightValue">1.0</span>
       </label>
       <label>
@@ -214,6 +305,7 @@
           max="2"
           step="0.1"
           value="1"
+          aria-label="Center weight"
         />
         <span id="centerWeightValue">1.0</span>
       </label>
@@ -226,54 +318,142 @@
           max="2"
           step="0.1"
           value="1"
+          aria-label="Speed weight"
         />
         <span id="speedWeightValue">1.0</span>
       </label>
-    </div>
+    </section>
+
+    <section
+      id="scenarioEditor"
+      aria-label="Custom drone scenario editor"
+    >
+      <strong>Scenario editor</strong><br />
+      <label>
+        Name:
+        <input
+          id="seName"
+          type="text"
+          value="Custom 1"
+          style="width:90px;"
+        />
+      </label>
+      <label>
+        X (0–100):
+        <input
+          id="seX"
+          type="number"
+          min="0"
+          max="100"
+          value="20"
+          style="width:60px;"
+        />
+      </label>
+      <label>
+        Y (0–100):
+        <input
+          id="seY"
+          type="number"
+          min="0"
+          max="100"
+          value="20"
+          style="width:60px;"
+        />
+      </label>
+      <label>
+        Speed:
+        <input
+          id="seSpeed"
+          type="number"
+          min="0"
+          max="5"
+          step="0.1"
+          value="0.8"
+          style="width:60px;"
+        />
+      </label>
+      <label>
+        Heading (deg):
+        <input
+          id="seHeading"
+          type="number"
+          min="0"
+          max="359"
+          value="45"
+          style="width:60px;"
+        />
+      </label>
+      <label>
+        RF:
+        <input
+          id="seRF"
+          type="number"
+          min="0"
+          max="100"
+          value="80"
+          style="width:60px;"
+        />
+      </label>
+      <button id="seAddBtn" style="margin-top:6px;">Add custom drone</button>
+      <div id="seNote" style="margin-top:4px; color:#0f0;"></div>
+    </section>
 
     <div
       id="statusBar"
-      style="margin-left:10px; margin-bottom:4px; font-size:0.9em;"
+      aria-live="polite"
+      aria-label="Drone status summary"
     >
       Active: 0 | Jammed: 0 | Neutralized: 0
     </div>
 
     <div
       id="statsBar"
-      style="margin-left:10px; margin-bottom:8px; font-size:0.9em;"
+      aria-live="polite"
+      aria-label="Run statistics"
     >
       Run time: 0 s | Neutralized: 0 | Max concurrent intruders: 0
     </div>
 
-    <div id="mainRow">
-      <div id="leftCol">
-        <div id="map"></div>
+    <main id="mainRow">
+      <section id="leftCol">
+        <div
+          id="map"
+          role="img"
+          aria-label="Radar map showing drones and threat levels"
+        ></div>
 
-        <div id="legend">
+        <aside
+          id="legend"
+          aria-label="Threat level legend"
+        >
           <strong>Threat Legend</strong><br />
           <span class="legend-box high"></span> High (score ≥ 70)<br />
           <span class="legend-box medium"></span> Medium (40–69)<br />
           <span class="legend-box low"></span> Low (10–39)<br />
           <span class="legend-box safe"></span> Safe (&lt; 10)
-        </div>
-      </div>
+        </aside>
+      </section>
 
-      <div id="rightCol">
+      <aside id="rightCol" aria-label="Inner ring zoom and status icons">
         <strong>Inner ring zoom</strong>
-        <div id="zoomMap"></div>
+        <div
+          id="zoomMap"
+          role="img"
+          aria-label="Zoomed view of inner protection ring"
+        ></div>
         <div style="margin-top:6px;">
           ■ = Landed<br />
           ◆ = Returned<br />
           ▲ = Jammed<br />
           ● = Active
         </div>
-      </div>
-    </div>
+      </aside>
+    </main>
 
     <h2 style="margin-left:10px;">Event Log</h2>
     <div
       id="log"
-      style="margin-left:10px; max-height:150px; overflow-y:auto; font-size:0.9em;"
+      aria-label="Simulation event log"
     ></div>
 
     <script src="ai_core.js"></script>
