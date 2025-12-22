@@ -1,81 +1,29 @@
-// NSD radar scenarios: calm and attack
+// NSD Field Scenarios: calm, attack, and allied drones
 
 const calmDrones = [
-  {
-    name: "Drone A",
-    x: 15,
-    y: 20,
-    speed: 0.3,
-    heading: 40,
-    rfStrength: 20,
-    distance: 120,
-    mode: "normal"
-  },
-  {
-    name: "Drone B",
-    x: 70,
-    y: 60,
-    speed: 0.2,
-    heading: 200,
-    rfStrength: 30,
-    distance: 150,
-    mode: "normal"
-  },
-  {
-    name: "Drone C",
-    x: 30,
-    y: 80,
-    speed: 0.25,
-    heading: 320,
-    rfStrength: 25,
-    distance: 100,
-    mode: "normal"
-  }
+  { name: 'Patrol A', x: 10, y: 20, speed: 8, heading: 45,  rfStrength: 25, mode: 'normal', side: 'enemy' },
+  { name: 'Patrol B', x: 70, y: 15, speed: 6, heading: 190, rfStrength: 20, mode: 'normal', side: 'enemy' },
+  { name: 'Patrol C', x: 25, y: 70, speed: 7, heading: 135, rfStrength: 30, mode: 'normal', side: 'enemy' }
 ];
 
 const attackDrones = [
-  {
-    name: "Attacker 1",
-    x: 10,
-    y: 10,
-    speed: 0.9,
-    heading: 45,
-    rfStrength: 90,
-    distance: 40,
-    mode: "normal"
-  },
-  {
-    name: "Attacker 2",
-    x: 20,
-    y: 20,
-    speed: 0.8,
-    heading: 60,
-    rfStrength: 85,
-    distance: 35,
-    mode: "normal"
-  },
-  {
-    name: "Attacker 3",
-    x: 80,
-    y: 20,
-    speed: 0.8,
-    heading: 120,
-    rfStrength: 95,
-    distance: 30,
-    mode: "normal"
-  },
-  {
-    name: "Support 1",
-    x: 85,
-    y: 75,
-    speed: 0.4,
-    heading: 200,
-    rfStrength: 60,
-    distance: 80,
-    mode: "normal"
-  }
+  { name: 'Swarm 1', x: 0,   y: 30, speed: 12, heading: 15,  rfStrength: 90, mode: 'active', side: 'enemy' },
+  { name: 'Swarm 2', x: 0,   y: 50, speed: 10, heading: 10,  rfStrength: 85, mode: 'active', side: 'enemy' },
+  { name: 'Swarm 3', x: 0,   y: 70, speed: 11, heading: 5,   rfStrength: 80, mode: 'active', side: 'enemy' },
+  { name: 'Swarm 4', x: 100, y: 40, speed: 9,  heading: 195, rfStrength: 75, mode: 'active', side: 'enemy' }
 ];
 
-function cloneScenario(scenario) {
-  return JSON.parse(JSON.stringify(scenario));
+// Allied drones (never jammed, blue)
+const alliedDrones = [
+  { name: 'Ally 1', x: 20, y: 40, speed: 6, heading: 0,   rfStrength: 40, mode: 'ally', side: 'ally' },
+  { name: 'Ally 2', x: 80, y: 30, speed: 8, heading: 180, rfStrength: 45, mode: 'ally', side: 'ally' }
+];
+
+// Mutable collection used at runtime (defaults + user-added)
+let runtimeAlliedDrones = alliedDrones.map(cloneScenario);
+
+
+function cloneScenario(obj) {
+  return JSON.parse(JSON.stringify(obj));
 }
+

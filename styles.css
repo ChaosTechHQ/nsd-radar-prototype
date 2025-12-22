@@ -1,0 +1,281 @@
+/* ChaosTech NSD Field Grid - Responsive + Accessible */
+* { box-sizing: border-box; }
+
+body {
+  background: #000;
+  color: #0f0;
+  font-family: 'Courier New', monospace;
+  margin: 0;
+  padding: 1rem;
+  min-height: 100vh;
+}
+
+header { margin-bottom: 1rem; }
+h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
+}
+
+#about {
+  padding: 0.75rem;
+  border: 1px solid #0f0;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background: rgba(0, 255, 0, 0.05);
+}
+
+/* Layout */
+.field-section {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.field-container {
+  position: relative;
+  border: 1px solid #0f0;
+  border-radius: 4px;
+  background: rgba(0, 10, 0, 0.9);
+}
+
+#map {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.side-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+@media (max-width: 900px) {
+  .field-section {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Controls */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.75rem;
+  background: rgba(0, 20, 0, 0.6);
+  border: 1px solid #0f0;
+  border-radius: 4px;
+}
+
+button {
+  background: #0f0;
+  color: #000;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85rem;
+}
+
+button:hover { background: #0a0; }
+button:active { background: #080; }
+
+#disruptModeLabel {
+  margin-left: auto;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+/* Editors */
+.scenario-editor {
+  padding: 0.7rem;
+  border: 1px solid #0f0;
+  border-radius: 4px;
+  background: rgba(0, 15, 0, 0.7);
+  font-size: 0.85rem;
+}
+
+.scenario-editor h2 {
+  margin: 0 0 0.4rem 0;
+  font-size: 0.95rem;
+}
+
+.scenario-editor label {
+  display: inline-block;
+  margin: 0.25rem 0.4rem 0.25rem 0;
+}
+
+.scenario-editor input,
+.scenario-editor select {
+  width: 4rem;
+  margin-left: 0.25rem;
+  background: #000;
+  color: #0f0;
+  border: 1px solid #0f0;
+  border-radius: 2px;
+  font-family: inherit;
+  font-size: 0.8rem;
+}
+
+.scenario-note {
+  margin-top: 0.4rem;
+  color: #0f0;
+  font-style: italic;
+}
+
+/* Legend */
+.legend {
+  padding: 0.75rem;
+  border: 1px solid #0f0;
+  border-radius: 4px;
+  background: rgba(0, 20, 0, 0.7);
+  font-size: 0.85rem;
+}
+
+.legend h2 {
+  margin: 0 0 0.4rem 0;
+  font-size: 0.95rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.15rem;
+}
+
+.pattern-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+}
+
+.pattern-dash {
+  width: 12px;
+  height: 2px;
+  background: currentColor;
+  mask: linear-gradient(
+    90deg,
+    transparent 0 3px,
+    currentColor 3px 9px,
+    transparent 9px
+  );
+}
+
+.pattern-cross {
+  width: 10px;
+  height: 10px;
+  position: relative;
+}
+.pattern-cross::before,
+.pattern-cross::after {
+  content: '';
+  position: absolute;
+  background: currentColor;
+  width: 10px;
+  height: 2px;
+}
+.pattern-cross::before { transform: rotate(45deg); }
+.pattern-cross::after { transform: rotate(-45deg); }
+
+.pattern-fill {
+  width: 10px;
+  height: 10px;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 2px,
+    currentColor 2px,
+    currentColor 4px
+  );
+}
+
+.pattern-circle {
+  width: 8px;
+  height: 8px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+
+.safe { color: #0a0; }
+.caution { color: #aa0; }
+.threat { color: #f80; }
+.high-threat { color: #f00; }
+.jammed { color: #00f; }
+
+.ally { color: #0cf; }
+
+.infra-critical { color: #ff0; }
+.infra-mobile { color: #0ff; }
+.infra-land { color: #0f0; }
+.infra-sea { color: #0af; }
+
+/* Status + AI controls */
+.status-section {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.status-bar {
+  padding: 0.7rem;
+  background: rgba(0, 30, 0, 0.8);
+  border: 1px solid #0f0;
+  border-radius: 4px;
+  font-family: monospace;
+  font-weight: bold;
+}
+
+.ai-controls label {
+  display: block;
+  padding: 0.7rem;
+  background: rgba(0, 20, 0, 0.7);
+  border: 1px solid #0f0;
+  border-radius: 4px;
+}
+
+.ai-controls input[type='range'] {
+  width: 5rem;
+  margin: 0 0.35rem;
+}
+
+/* Event Log */
+.log-section h2 {
+  margin: 0 0 0.4rem 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.log-controls {
+  font-size: 0.8rem;
+}
+
+.event-log {
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 0.75rem;
+  background: rgba(0, 10, 0, 0.9);
+  border: 1px solid #0f0;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.log-entry.threat { color: #f80; }
+.log-entry.high-threat { color: #f00; }
+.log-entry.jam { color: #00f; }
+.log-entry.neutralized { color: #0a0; }
+.log-entry.infra { color: #ff0; }
+
+/* Drone list */
+#droneList {
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+}
+

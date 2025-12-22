@@ -1,487 +1,479 @@
-// NSD radar UI + animation + controls
+// ChaosTech NSD Field Grid UI v4.0 - Allies + global disruption
 
-// DOM elements
-const map = document.getElementById("map");
-const zoomMap = document.getElementById("zoomMap");
-const logDiv = document.getElementById("log");
-const calmBtn = document.getElementById("calmBtn");
-const attackBtn = document.getElementById("attackBtn");
-const pauseBtn = document.getElementById("pauseBtn");
-const jamBtn = document.getElementById("jamBtn");
-const statusBar = document.getElementById("statusBar");
-const statsBar = document.getElementById("statsBar");
-const disruptModeLabel = document.getElementById("disruptModeLabel");
+const map = document.getElementById('map');
+const ctx = map.getContext('2d');
 
-// sliders
-const rfSlider = document.getElementById("rfWeight");
-const centerSlider = document.getElementById("centerWeight");
-const speedSlider = document.getElementById("speedWeight");
+const calmBtn = document.getElementById('calmBtn');
+const attackBtn = document.getElementById('attackBtn');
+const pauseBtn = document.getElementById('pauseBtn');
+const resetBtn = document.getElementById('resetBtn');
+const jamBtn = document.getElementById('jamBtn');
+const disruptModeLabel = document.getElementById('disruptModeLabel');
 
-const rfLabel = document.getElementById("rfWeightValue");
-const centerLabel = document.getElementById("centerWeightValue");
-const speedLabel = document.getElementById("speedWeightValue");
+const logFilter = document.getElementById('logFilter');
+const clearLogBtn = document.getElementById('clearLog');
 
-// state
-let drones = cloneScenario(calmDrones);
-let isPaused = false;
-const TRAIL_LENGTH = 20;
+const seName = document.getElementById('seName');
+const seX = document.getElementById('seX');
+const seY = document.getElementById('seY');
+const seSpeed = document.getElementById('seSpeed');
+const seHeading = document.getElementById('seHeading');
+const seRF = document.getElementById('seRF');
+const seAddBtn = document.getElementById('seAddBtn');
+const seNote = document.getElementById('seNote');
+
+const infLabel = document.getElementById('infLabel');
+const infType = document.getElementById('infType');
+const infX = document.getElementById('infX');
+const infY = document.getElementById('infY');
+const infAddBtn = document.getElementById('infAddBtn');
+const infNote = document.getElementById('infNote');
+
+const allyName = document.getElementById('allyName');
+const allyX = document.getElementById('allyX');
+const allyY = document.getElementById('allyY');
+const allySpeed = document.getElementById('allySpeed');
+const allyHeading = document.getElementById('allyHeading');
+const allyAddBtn = document.getElementById('allyAddBtn');
+const allyNote = document.getElementById('allyNote');
+
+const TRAIL_LENGTH = 10;
 const trails = new Map();
-const seenHighThreat = new Set();
-let selectedDroneName = null;
-let disruptMode = "land"; // "land" or "rth"
 
-// stats
-let runStartTime = Date.now();
-let neutralizedCount = 0;
-let maxConcurrentIntruders = 0;
+// Resize canvas
+function resizeCanvas() {
+  const rect = map.getBoundingClientRect();
+  map.width = rect.width;
+  map.height = rect.height;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
 
-// base / no-fly zone
-const baseRadius = 10; // in map units (0–100)
-let breachCount = 0;
-let stoppedBeforeBase = 0;
-let reachedBase = 0;
-
-// ---------- Radar background (rings + sweep + base) ----------
-
-[100, 200, 300].forEach((diameter) => {
-  const ring = document.createElement("div");
-  ring.className = "radar-circle";
-  ring.style.width = diameter + "px";
-  ring.style.height = diameter + "px";
-  ring.style.left = (400 - diameter) / 2 + "px";
-  ring.style.top = (400 - diameter) / 2 + "px";
-  map.appendChild(ring);
-});
-
-// base icon in center
-const baseIcon = document.createElement("div");
-baseIcon.style.position = "absolute";
-baseIcon.style.width = "20px";
-baseIcon.style.height = "20px";
-baseIcon.style.left = "190px"; // 200 - 10
-baseIcon.style.top = "190px";
-baseIcon.style.backgroundColor = "#fff";
-baseIcon.style.border = "2px solid red";
-baseIcon.style.boxSizing = "border-box";
-map.appendChild(baseIcon);
-
-// no-fly circle (visual)
-const baseCircle = document.createElement("div");
-baseCircle.className = "radar-circle";
-const baseDiameter = baseRadius * 4 * 2; // map units -> px
-baseCircle.style.width = baseDiameter + "px";
-baseCircle.style.height = baseDiameter + "px";
-baseCircle.style.left = 200 - baseDiameter / 2 + "px";
-baseCircle.style.top = 200 - baseDiameter / 2 + "px";
-baseCircle.style.borderColor = "rgba(255,0,0,0.6)";
-map.appendChild(baseCircle);
-
-const radarLine = document.createElement("div");
-radarLine.className = "radar-line";
-radarLine.style.left = "199px";
-radarLine.style.top = "0px";
-map.appendChild(radarLine);
-
-let sweepAngle = 0;
-function updateSweep() {
-  sweepAngle = (sweepAngle + 2) % 360;
-  radarLine.style.transform = `rotate(${sweepAngle}deg)`;
+/* Scenarios */
+function startCalm() {
+  drones = calmDrones.map(cloneScenario);
+  runtimeAlliedDrones.forEach(a => drones.push(cloneScenario(a)));
+  trails.clear();
+  infraMarkers = [
+    { label: 'HQ', type: 'land', x: 50, y: 50 },
+    { label: 'Radar Hill', type: 'critical', x: 30, y: 30 }
+  ];
+  logEvent('Calm field scenario with allies loaded.', 'info');
+  redrawMap();
 }
 
-// ---------- Controls ----------
-
-function updateWeightLabels() {
-  rfLabel.textContent = parseFloat(rfSlider.value).toFixed(1);
-  centerLabel.textContent = parseFloat(centerSlider.value).toFixed(1);
-  speedLabel.textContent = parseFloat(speedSlider.value).toFixed(1);
+function startAttack() {
+  drones = attackDrones.map(cloneScenario);
+  runtimeAlliedDrones.forEach(a => drones.push(cloneScenario(a)));
+  trails.clear();
+  infraMarkers = [
+    { label: 'HQ', type: 'land', x: 50, y: 50 },
+    { label: 'Fuel Farm', type: 'critical', x: 65, y: 60 },
+    { label: 'Sea Base', type: 'sea', x: 90, y: 80 }
+  ];
+  logEvent('Attack corridor scenario with allies loaded.', 'info');
+  redrawMap();
 }
 
-function getWeights() {
-  return {
-    rf: parseFloat(rfSlider.value),
-    center: parseFloat(centerSlider.value),
-    speed: parseFloat(speedSlider.value)
-  };
-}
+/* Editors */
+function addCustomDrone() {
+  const name = seName.value || 'Custom';
+  const x = Number(seX.value);
+  const y = Number(seY.value);
+  const speed = Number(seSpeed.value);
+  const heading = Number(seHeading.value);
+  const rf = Number(seRF.value);
 
-rfSlider.oninput = centerSlider.oninput = speedSlider.oninput =
-  function () {
-    updateWeightLabels();
-    redrawMap();
+  if (
+    Number.isNaN(x) || Number.isNaN(y) ||
+    Number.isNaN(speed) || Number.isNaN(heading) || Number.isNaN(rf)
+  ) {
+    seNote.textContent = 'Enter valid numbers for all fields.';
+    return;
+  }
+
+  const d = {
+    name,
+    x: Math.max(0, Math.min(100, x)),
+    y: Math.max(0, Math.min(100, y)),
+    speed: Math.max(1, Math.min(30, speed)),
+    heading: ((heading % 360) + 360) % 360,
+    rfStrength: Math.max(0, Math.min(100, rf)),
+    mode: 'active',
+    side: 'enemy'
   };
 
-updateWeightLabels();
-
-function updateDisruptModeLabel() {
-  disruptModeLabel.textContent =
-    "Mode: " + (disruptMode === "land" ? "Land in place" : "Return to home");
+  drones.push(d);
+  attackDrones.push(JSON.parse(JSON.stringify(d)));
+  seNote.textContent = `Added ${name} at (${d.x}, ${d.y}) heading ${d.heading}°.`;
+  logEvent(`Custom hostile drone added: ${name}`, 'info');
+  redrawMap();
 }
-updateDisruptModeLabel();
 
-disruptModeLabel.onclick = () => {
-  disruptMode = disruptMode === "land" ? "rth" : "land";
-  updateDisruptModeLabel();
-  logEvent(
-    "Disruption mode set to: " +
-      (disruptMode === "land" ? "Land in place" : "Return to home")
+function addInfrastructureMarker() {
+  const label = infLabel.value || 'Site';
+  const type = infType.value;
+  const x = Number(infX.value);
+  const y = Number(infY.value);
+
+  if (Number.isNaN(x) || Number.isNaN(y)) {
+    infNote.textContent = 'Enter valid X and Y.';
+    return;
+  }
+
+  const m = {
+    label,
+    type,
+    x: Math.max(0, Math.min(100, x)),
+    y: Math.max(0, Math.min(100, y))
+  };
+  infraMarkers.push(m);
+  infNote.textContent = `Added ${label} (${type}) at (${m.x}, ${m.y}).`;
+  logEvent(`Infrastructure added: ${label} (${type})`, 'infra');
+  redrawMap();
+}
+
+function addAllyDrone() {
+  const name = allyName.value || 'Ally';
+  const x = Number(allyX.value);
+  const y = Number(allyY.value);
+  const speed = Number(allySpeed.value);
+  const heading = Number(allyHeading.value);
+
+  if (Number.isNaN(x) || Number.isNaN(y) ||
+      Number.isNaN(speed) || Number.isNaN(heading)) {
+    allyNote.textContent = 'Enter valid numbers for all ally fields.';
+    return;
+  }
+
+  const ally = {
+    name,
+    x: Math.max(0, Math.min(100, x)),
+    y: Math.max(0, Math.min(100, y)),
+    speed: Math.max(1, Math.min(30, speed)),
+    heading: ((heading % 360) + 360) % 360,
+    rfStrength: 40,
+    mode: 'ally',
+    side: 'ally'
+  };
+
+  // Add to runtime ally collection and live drones
+  runtimeAlliedDrones.push(cloneScenario(ally));
+  drones.push(ally);
+
+  allyNote.textContent = `Added ally ${name} at (${ally.x}, ${ally.y}) heading ${ally.heading}°.`;
+  logEvent(`Ally / US drone added: ${name}`, 'info');
+  redrawMap();
+}
+
+/* Selection */
+function selectDrone(drone) {
+  selectedDrone = drone;
+  drones.forEach(d => (d.selected = d === drone));
+  redrawMap();
+}
+
+/* Movement */
+function updatePositions() {
+  if (isPaused) return;
+
+  drones.forEach(drone => {
+    if (drone.mode === 'jammed') {
+      const elapsed = Date.now() - drone.jamTime;
+
+      if (elapsed < 2000) {
+        drone.x += (Math.random() - 0.5) * 0.2;
+        drone.y += (Math.random() - 0.5) * 0.2;
+      } else {
+        if (disruptMode === 'land') {
+          drone.y += 0.8;
+        } else if (disruptMode === 'return') {
+          const dx = 50 - drone.x;
+          const dy = 50 - drone.y;
+          drone.x += dx * 0.02;
+          drone.y += dy * 0.02;
+        } else if (disruptMode === 'corridor') {
+          const dx = 90 - drone.x;
+          drone.x += dx * 0.025;
+          drone.y += 0.6;
+        }
+        if (drone.y > 110 || drone.x < -10 || drone.x > 110) {
+          neutralizeDrone(drone);
+        }
+      }
+    } else if (drone.mode === 'active' || drone.mode === 'normal' || drone.mode === 'ally') {
+      if (drone.side === 'ally') {
+        // Allies move gently
+        drone.x += Math.cos((drone.heading * Math.PI) / 180) * drone.speed * 0.02;
+        drone.y += Math.sin((drone.heading * Math.PI) / 180) * drone.speed * 0.02;
+      } else {
+        // Hostiles use main speed
+        drone.x += Math.cos((drone.heading * Math.PI) / 180) * drone.speed * 0.04;
+        drone.y += Math.sin((drone.heading * Math.PI) / 180) * drone.speed * 0.04;
+      }
+
+      if (drone.x <= 0 || drone.x >= 100) drone.heading = 180 - drone.heading;
+      if (drone.y <= 0 || drone.y >= 100) drone.heading = -drone.heading;
+      drone.x = Math.max(0, Math.min(100, drone.x));
+      drone.y = Math.max(0, Math.min(100, drone.y));
+    }
+
+    if (!trails.has(drone.name)) trails.set(drone.name, []);
+    const trail = trails.get(drone.name);
+    trail.push({ x: drone.x, y: drone.y });
+    if (trail.length > TRAIL_LENGTH) trail.shift();
+  });
+
+  checkAutoJam();
+  redrawMap();
+
+  updateStatusBar(
+    drones.filter(d => d.side !== 'ally' && (d.mode === 'active' || d.mode === 'normal')).length,
+    drones.filter(d => d.side !== 'ally' && d.mode === 'jammed').length,
+    drones.filter(d => d.side !== 'ally' && d.mode === 'neutralized').length
   );
-};
-
-function resetStats() {
-  runStartTime = Date.now();
-  neutralizedCount = 0;
-  maxConcurrentIntruders = 0;
-  breachCount = 0;
-  stoppedBeforeBase = 0;
-  reachedBase = 0;
 }
 
-calmBtn.onclick = () => {
-  drones = cloneScenario(calmDrones);
-  trails.clear();
-  seenHighThreat.clear();
-  selectedDroneName = null;
-  resetStats();
-  updateDisruptModeLabel();
-  redrawMap();
+/* Drawing */
+function drawGrid(w, h) {
+  const cols = 10;
+  const rows = 6;
+  const cellW = w / cols;
+  const cellH = h / rows;
+
+  ctx.strokeStyle = '#063';
+  ctx.lineWidth = 1;
+
+  for (let c = 0; c <= cols; c++) {
+    const x = c * cellW;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, h);
+    ctx.stroke();
+  }
+
+  for (let r = 0; r <= rows; r++) {
+    const y = r * cellH;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = '#0f0';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(w * 0.4, h * 0.3, w * 0.2, h * 0.4);
+}
+
+function redrawMap() {
+  const w = map.width;
+  const h = map.height;
+
+  ctx.fillStyle = 'rgba(0, 10, 0, 1)';
+  ctx.fillRect(0, 0, w, h);
+
+  drawGrid(w, h);
+
+  const toX = p => (p / 100) * w;
+  const toY = p => (p / 100) * h;
+
+  // Infrastructure
+  infraMarkers.forEach(m => {
+    const x = toX(m.x);
+    const y = toY(m.y);
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.lineWidth = 2;
+
+    if (m.type === 'critical') {
+      ctx.strokeStyle = '#ff0';
+      ctx.fillStyle = 'rgba(255,255,0,0.15)';
+      ctx.fillRect(-10, -10, 20, 20);
+      ctx.strokeRect(-10, -10, 20, 20);
+    } else if (m.type === 'mobile') {
+      ctx.strokeStyle = '#0ff';
+      ctx.beginPath();
+      ctx.moveTo(0, -10);
+      ctx.lineTo(10, 10);
+      ctx.lineTo(-10, 10);
+      ctx.closePath();
+      ctx.stroke();
+    } else if (m.type === 'land') {
+      ctx.strokeStyle = '#0f0';
+      ctx.strokeRect(-8, -8, 16, 16);
+    } else if (m.type === 'sea') {
+      ctx.strokeStyle = '#0af';
+      ctx.beginPath();
+      ctx.arc(0, 0, 10, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = '#0f0';
+    ctx.font = '10px Courier New';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText(m.label, 12, -8);
+
+    ctx.restore();
+  });
+
+  // Drones
+  drones.forEach(drone => {
+    const status = decideDroneStatus(drone);
+    const x = toX(drone.x);
+    const y = toY(drone.y);
+
+    const trail = trails.get(drone.name);
+    if (trail && trail.length > 1) {
+      ctx.strokeStyle = drone.side === 'ally'
+        ? 'rgba(0,200,255,0.3)'
+        : 'rgba(0,255,0,0.3)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      trail.forEach((p, i) => {
+        const tx = toX(p.x);
+        const ty = toY(p.y);
+        if (i === 0) ctx.moveTo(tx, ty);
+        else ctx.lineTo(tx, ty);
+      });
+      ctx.stroke();
+    }
+
+    let color;
+    let size = 4;
+
+    if (drone.side === 'ally') {
+      color = '#0cf';
+      size = 5;
+    } else if (drone.mode === 'jammed') {
+      color = '#00f';
+      size = 6;
+    } else if (drone.mode === 'neutralized') {
+      return;
+    } else if (status.score >= 81) {
+      color = '#f00';
+      size = 7;
+    } else if (status.score >= 61) {
+      color = '#f80';
+      size = 6;
+    } else if (status.score >= 31) {
+      color = '#aa0';
+      size = 5;
+    } else {
+      color = '#0a0';
+      size = 4;
+    }
+
+    if (drone.selected) {
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x, y, size + 3, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // Accessible drone list
+  let list = document.getElementById('droneList');
+  if (!list) {
+    list = document.createElement('div');
+    list.id = 'droneList';
+    list.setAttribute('aria-label', 'Current drones');
+    list.setAttribute('role', 'list');
+    map.insertAdjacentElement('afterend', list);
+  }
+  list.innerHTML = '';
+  drones.forEach(drone => {
+    if (drone.mode === 'neutralized') return;
+    const status = decideDroneStatus(drone);
+    const labelSide = drone.side === 'ally' ? 'ALLY' : 'HOSTILE';
+    const item = document.createElement('div');
+    item.setAttribute('role', 'listitem');
+    item.style.cursor = 'pointer';
+    item.textContent =
+      (drone.selected ? '[SELECTED] ' : '') +
+      `[${labelSide}] ` +
+      `${drone.name} – ${status.score.toFixed(0)} (${status.reasons})`;
+    item.onclick = () => selectDrone(drone);
+    list.appendChild(item);
+  });
+}
+
+/* Mouse selection */
+map.onclick = e => {
+  const rect = map.getBoundingClientRect();
+  const xPct = ((e.clientX - rect.left) / rect.width) * 100;
+  const yPct = ((e.clientY - rect.top) / rect.height) * 100;
+
+  let closest = null;
+  let minDist = Infinity;
+  drones.forEach(d => {
+    const dx = d.x - xPct;
+    const dy = d.y - yPct;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < 5 && dist < minDist) {
+      minDist = dist;
+      closest = d;
+    }
+  });
+
+  if (closest) selectDrone(closest);
 };
 
-attackBtn.onclick = () => {
-  drones = cloneScenario(attackDrones);
-  trails.clear();
-  seenHighThreat.clear();
-  selectedDroneName = null;
-  resetStats();
-  updateDisruptModeLabel();
-  redrawMap();
+/* Wiring */
+calmBtn.onclick = startCalm;
+attackBtn.onclick = startAttack;
+resetBtn.onclick = resetSimulation;
+allyAddBtn.onclick = addAllyDrone;
+
+jamBtn.onclick = () => {
+  jamAllDrones('Operator');
 };
 
 pauseBtn.onclick = () => {
   isPaused = !isPaused;
-  pauseBtn.textContent = isPaused ? "Resume" : "Pause";
+  pauseBtn.textContent = isPaused ? 'Resume' : 'Pause';
+  pauseBtn.setAttribute(
+    'aria-label',
+    isPaused ? 'Resume simulation' : 'Pause simulation'
+  );
+  logEvent(isPaused ? 'Simulation paused.' : 'Simulation resumed.', 'info');
 };
 
-// manual jam button
-jamBtn.onclick = () => {
-  if (!selectedDroneName) {
-    logEvent("No drone selected to jam");
-    return;
-  }
-  const target = drones.find(
-    (d) => d.name === selectedDroneName && d.mode !== "neutralized"
-  );
-  if (!target) {
-    logEvent("Selected drone not found / already neutralized");
-    return;
-  }
-  if (target.mode === "jammed") {
-    logEvent(selectedDroneName + " is already jammed");
-    return;
-  }
+disruptModeLabel.onclick = cycleDisruptMode;
 
-  target.mode = "jammed";
-  target.jamTicks = 0;
-  logEvent(selectedDroneName + " manually JAMMED");
+seAddBtn.onclick = addCustomDrone;
+infAddBtn.onclick = addInfrastructureMarker;
+
+clearLogBtn.onclick = () => (log.innerHTML = '');
+
+logFilter.onchange = () => {
+  const entries = log.querySelectorAll('.log-entry');
+  entries.forEach(entry => {
+    const type = entry.className;
+    const f = logFilter.value;
+    const show =
+      f === 'all' ||
+      type.includes(f);
+    entry.style.display = show ? '' : 'none';
+  });
 };
 
-// ---------- Event log ----------
+/* Init */
+document.addEventListener('DOMContentLoaded', () => {
+  updateWeights();
+  startCalm();
 
-function logEvent(text) {
-  const line = document.createElement("div");
-  const time = new Date().toLocaleTimeString();
-  line.textContent = time + " - " + text;
-  logDiv.prepend(line);
-}
-
-// ---------- Status + stats ----------
-
-function updateStatusBar() {
-  const active = drones.filter((d) => d.mode === "normal").length;
-  const jammed = drones.filter((d) => d.mode === "jammed").length;
-  const neutralized = drones.filter((d) => d.mode === "neutralized").length;
-  statusBar.textContent =
-    "Active: " +
-    active +
-    " | Jammed: " +
-    jammed +
-    " | Neutralized: " +
-    neutralized;
-}
-
-function updateStatsBar() {
-  const seconds = Math.floor((Date.now() - runStartTime) / 1000);
-  const currentIntruders = drones.filter(
-    (d) => d.mode !== "neutralized"
-  ).length;
-  if (currentIntruders > maxConcurrentIntruders) {
-    maxConcurrentIntruders = currentIntruders;
+  function loop() {
+    if (!isPaused) updatePositions();
+    requestAnimationFrame(loop);
   }
-  statsBar.textContent =
-    "Run time: " +
-    seconds +
-    " s | Neutralized: " +
-    neutralizedCount +
-    " | Max intruders: " +
-    maxConcurrentIntruders +
-    " | Breaches: " +
-    breachCount +
-    " (Stopped: " +
-    stoppedBeforeBase +
-    ", Reached base: " +
-    reachedBase +
-    ")";
-}
+  loop();
+});
 
-// ---------- Draw + scoring ----------
-
-function redrawMap() {
-  const weights = getWeights();
-
-  document.querySelectorAll(".drone-dot, .drone-icon").forEach((d) =>
-    d.remove()
-  );
-  document.querySelectorAll(".trail-dot").forEach((d) => d.remove());
-  zoomMap.innerHTML = "";
-
-  const fixedIds = new Set([
-    "about",
-    "calmBtn",
-    "attackBtn",
-    "pauseBtn",
-    "jamBtn",
-    "disruptModeLabel",
-    "controls",
-    "statusBar",
-    "statsBar",
-    "map",
-    "legend",
-    "log",
-    "mainRow",
-    "leftCol",
-    "rightCol",
-    "zoomMap"
-  ]);
-
-  while (
-    document.body.lastChild &&
-    !fixedIds.has(document.body.lastChild.id) &&
-    document.body.lastChild.tagName === "DIV"
-  ) {
-    const node = document.body.lastChild;
-    if (node.id === "log" || node.id === "legend" || node.id === "map") break;
-    document.body.removeChild(node);
-  }
-
-  const innerRadius = 20;
-
-  drones.forEach((drone) => {
-    const result = decideDroneStatus(drone, weights);
-
-    if (result.score >= 80 && drone.mode === "normal") {
-      drone.mode = "jammed";
-      drone.jamTicks = 0;
-      logEvent(drone.name + " JAMMED (auto, score " + result.score + ")");
-    }
-
-    const key = drone.name;
-    if (result.status === "HIGH THREAT" && !seenHighThreat.has(key)) {
-      seenHighThreat.add(key);
-      logEvent(
-        drone.name +
-          " HIGH THREAT (score " +
-          result.score +
-          ", " +
-          result.reason +
-          ")"
-      );
-    }
-    if (result.status !== "HIGH THREAT" && seenHighThreat.has(key)) {
-      seenHighThreat.delete(key);
-    }
-
-    const trail = trails.get(drone.name) || [];
-    trail.forEach((p) => {
-      const tdot = document.createElement("div");
-      tdot.className = "trail-dot";
-      tdot.style.left = p.x * 4 + "px";
-      tdot.style.top = p.y * 4 + "px";
-      map.appendChild(tdot);
-    });
-
-    // choose icon shape and color
-    let icon;
-    if (drone.mode === "jammed") {
-      icon = document.createElement("div");
-      icon.className = "drone-icon dot-triangle";
-    } else if (drone.mode === "neutralized") {
-      icon = document.createElement("div");
-      if (drone.neutralizedType === "land") {
-        icon.className = "drone-icon dot-square";
-      } else {
-        icon.className = "drone-icon dot-diamond";
-      }
-    } else {
-      icon = document.createElement("div");
-      icon.className = "drone-icon dot-circle";
-      if (result.score >= 70) {
-        icon.style.backgroundColor = "red";
-      } else if (result.score >= 40) {
-        icon.style.backgroundColor = "yellow";
-      } else if (result.score >= 10) {
-        icon.style.backgroundColor = "lime";
-      } else {
-        icon.style.backgroundColor = "#004400";
-      }
-    }
-
-    icon.style.left = drone.x * 4 + "px";
-    icon.style.top = drone.y * 4 + "px";
-    map.appendChild(icon);
-
-    // inner-ring zoom
-    const dx = drone.x - 50;
-    const dy = drone.y - 50;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist < innerRadius) {
-      const z = document.createElement("div");
-      z.className = icon.className;
-      z.style.position = "absolute";
-      const scale = 5;
-      const zx = 100 + dx * scale;
-      const zy = 100 + dy * scale;
-      z.style.left = zx + "px";
-      z.style.top = zy + "px";
-      if (icon.style.backgroundColor) {
-        z.style.backgroundColor = icon.style.backgroundColor;
-      }
-      zoomMap.appendChild(z);
-    }
-
-    const line = document.createElement("div");
-    line.style.marginLeft = "10px";
-    line.style.cursor = "pointer";
-    line.textContent =
-      (drone.name === selectedDroneName ? "[SELECTED] " : "") +
-      drone.name +
-      " -> " +
-      result.status +
-      " (" +
-      drone.mode +
-      ", score " +
-      result.score +
-      ", " +
-      result.reason +
-      ")";
-    line.onclick = () => {
-      selectedDroneName =
-        selectedDroneName === drone.name ? null : drone.name;
-      redrawMap();
-    };
-    document.body.appendChild(line);
-  });
-
-  updateStatusBar();
-  updateStatsBar();
-}
-
-// ---------- Motion + trails + base breaches ----------
-
-function updatePositions() {
-  if (isPaused) return;
-
-  drones.forEach((drone) => {
-    if (drone.mode === "jammed") {
-      drone.jamTicks = (drone.jamTicks || 0) + 1;
-
-      if (disruptMode === "land") {
-        if (drone.jamTicks < 20) {
-          drone.x += (Math.random() - 0.5) * 0.2;
-          drone.y += (Math.random() - 0.5) * 0.2;
-        } else {
-          drone.y += 0.15;
-        }
-
-        if (drone.jamTicks > 60) {
-          drone.mode = "neutralized";
-          drone.neutralizedType = "land";
-          neutralizedCount++;
-          // if this drone had breached and is still alive, it was stopped after breach
-          if (drone.breachedBase) {
-            stoppedBeforeBase++;
-          }
-          logEvent(drone.name + " NEUTRALIZED (landed)");
-        }
-      } else {
-        const cx = 50;
-        const cy = 50;
-
-        if (drone.jamTicks < 20) {
-          drone.x += (Math.random() - 0.5) * 0.2;
-          drone.y += (Math.random() - 0.5) * 0.2;
-        } else {
-          const dx = cx - drone.x;
-          const dy = cy - drone.y;
-          const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-          const step = 0.6;
-          drone.x += (dx / dist) * step;
-          drone.y += (dy / dist) * step;
-        }
-
-        if (Math.abs(drone.x - 50) < 1 && Math.abs(drone.y - 50) < 1) {
-          drone.mode = "neutralized";
-          drone.neutralizedType = "rth";
-          neutralizedCount++;
-          if (drone.breachedBase) {
-            stoppedBeforeBase++;
-          }
-          logEvent(drone.name + " NEUTRALIZED (returned to home)");
-        }
-      }
-    } else if (drone.mode === "normal") {
-      const rad = (drone.heading * Math.PI) / 180;
-      drone.x += Math.cos(rad) * drone.speed;
-      drone.y += Math.sin(rad) * drone.speed;
-
-      if (drone.x < 0 || drone.x > 100) {
-        drone.heading = 180 - drone.heading;
-      }
-      if (drone.y < 0 || drone.y > 100) {
-        drone.heading = 360 - drone.heading;
-      }
-    }
-
-    // base breach detection (first time inside baseRadius)
-    const dx = drone.x - 50;
-    const dy = drone.y - 50;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    if (!drone.breachedBase && dist < baseRadius) {
-      drone.breachedBase = true;
-      breachCount++;
-      logEvent(drone.name + " BASE BREACH (inside no-fly zone)");
-    }
-
-    if (drone.mode !== "neutralized") {
-      if (!trails.has(drone.name)) {
-        trails.set(drone.name, []);
-      }
-      const trail = trails.get(drone.name);
-      trail.push({ x: drone.x, y: drone.y });
-      if (trail.length > TRAIL_LENGTH) {
-        trail.shift();
-      }
-    } else {
-      // if drone was neutralized without ever breaching, and very close to center, count as reached base
-      if (!drone.breachedBase && dist < baseRadius) {
-        reachedBase++;
-      }
-    }
-  });
-
-  drones = drones.filter((d) => d.mode !== "neutralized");
-
-  redrawMap();
-}
-
-redrawMap();
-setInterval(updateSweep, 30);
-setInterval(updatePositions, 100);

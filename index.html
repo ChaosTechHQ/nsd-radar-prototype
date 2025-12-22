@@ -1,463 +1,242 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8" />
-    <title>ChaosTech NSD Radar Prototype</title>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ChaosTech NSD Field Grid Prototype v4.0</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header role="banner">
+    <h1>ChaosTech NSD Field Grid Prototype</h1>
+    <aside id="about" aria-label="Prototype information">
+      Neural Swarm Disruptor simulation: AI-powered counter-UAS threat assessment and mitigation
+      over a rectangular base defense grid with allied and hostile drones.
+    </aside>
+  </header>
 
-    <style>
-      body {
-        background-color: #000;
-        color: #0f0;
-        font-family: Arial, sans-serif;
-      }
+  <main role="main">
+    <section class="field-section" aria-label="Main field grid and controls">
+      <div class="field-container" aria-label="Operational field grid">
+        <canvas
+          id="map"
+          width="800"
+          height="500"
+          role="img"
+          aria-label="Rectangular field grid showing drone tracks, allies, and infrastructure markers"
+        ></canvas>
+      </div>
 
-      h1 {
-        margin-left: 10px;
-      }
+      <aside
+        class="side-panel"
+        role="complementary"
+        aria-label="Controls, legend, and editors"
+      >
+        <nav class="controls" aria-label="Simulation controls">
+          <button id="calmBtn" aria-label="Load calm airspace scenario">Calm airspace</button>
+          <button id="attackBtn" aria-label="Load attack run scenario">Attack run</button>
+          <button id="pauseBtn" aria-label="Pause or resume simulation">Pause</button>
+          <button id="resetBtn" aria-label="Reset simulation to initial state">🔄 Reset</button>
+          <button id="jamBtn" aria-label="Jam all hostile drones at once">Jam all drones</button>
+          <span
+            id="disruptModeLabel"
+            aria-live="polite"
+            aria-label="Current disruption mode, click to change"
+          >
+            Mode: Land in place
+          </span>
+        </nav>
 
-      #about {
-        margin-left: 10px;
-        margin-bottom: 10px;
-        padding: 8px;
-        border: 1px solid #0f0;
-        max-width: 420px;
-        font-size: 0.9em;
-      }
+        <section
+          id="scenarioEditor"
+          class="scenario-editor"
+          aria-label="Custom drone editor"
+        >
+          <h2>Custom drone</h2>
+          <label>
+            Name:
+            <input id="seName" type="text" value="Custom 1" />
+          </label>
+          <label>
+            X (0–100):
+            <input id="seX" type="number" min="0" max="100" value="10" />
+          </label>
+          <label>
+            Y (0–100):
+            <input id="seY" type="number" min="0" max="100" value="10" />
+          </label>
+          <label>
+            Speed (1–30):
+            <input id="seSpeed" type="number" min="1" max="30" value="12" />
+          </label>
+          <label>
+            Heading (0–359):
+            <input id="seHeading" type="number" min="0" max="359" value="45" />
+          </label>
+          <label>
+            RF (0–100):
+            <input id="seRF" type="number" min="0" max="100" value="80" />
+          </label>
+          <button id="seAddBtn" aria-label="Add custom hostile drone to current scenario">
+            Add custom drone
+          </button>
+          <div id="seNote" class="scenario-note" aria-live="polite"></div>
+        </section>
+        <section
+  id="allyEditor"
+  class="scenario-editor"
+  aria-label="Allied and US drone editor"
+>
+  <h2>Allied / US drones</h2>
+  <label>
+    Name:
+    <input id="allyName" type="text" value="US MQ-9" />
+  </label>
+  <label>
+    X (0–100):
+    <input id="allyX" type="number" min="0" max="100" value="30" />
+  </label>
+  <label>
+    Y (0–100):
+    <input id="allyY" type="number" min="0" max="100" value="30" />
+  </label>
+  <label>
+    Speed (1–30):
+    <input id="allySpeed" type="number" min="1" max="30" value="10" />
+  </label>
+  <label>
+    Heading (0–359):
+    <input id="allyHeading" type="number" min="0" max="359" value="0" />
+  </label>
+  <button id="allyAddBtn" aria-label="Add allied or US military drone">
+    Add ally / US drone
+  </button>
+  <div id="allyNote" class="scenario-note" aria-live="polite"></div>
+</section>
 
-      /* Top controls */
-      nav#topControls {
-        margin-left: 10px;
-        margin-bottom: 10px;
-      }
+        <section
+          id="infrastructureEditor"
+          class="scenario-editor"
+          aria-label="Infrastructure marker editor"
+        >
+          <h2>Infrastructure</h2>
+          <label>
+            Label:
+            <input id="infLabel" type="text" value="Site A" />
+          </label>
+          <label>
+            Type:
+            <select id="infType">
+              <option value="critical">Important site</option>
+              <option value="mobile">Mobile unit</option>
+              <option value="land">Land base</option>
+              <option value="sea">Sea base</option>
+            </select>
+          </label>
+          <label>
+            X (0–100):
+            <input id="infX" type="number" min="0" max="100" value="50" />
+          </label>
+          <label>
+            Y (0–100):
+            <input id="infY" type="number" min="0" max="100" value="50" />
+          </label>
+          <button id="infAddBtn" aria-label="Add infrastructure marker to field grid">
+            Add marker
+          </button>
+          <div id="infNote" class="scenario-note" aria-live="polite"></div>
+        </section>
 
-      button {
-        margin-right: 6px;
-        margin-top: 5px;
-        margin-bottom: 5px;
-      }
-
-      #disruptModeLabel {
-        margin-left: 10px;
-        font-size: 0.9em;
-        cursor: pointer;
-      }
-
-      /* Layout */
-      #mainRow {
-        display: flex;
-        flex-direction: row;
-        align-items: flex-start;
-        flex-wrap: wrap;
-      }
-
-      #leftCol {
-        display: inline-block;
-      }
-
-      #rightCol {
-        display: inline-block;
-        margin-left: 20px;
-        font-size: 0.85em;
-      }
-
-      /* Radar & zoom – now responsive-ish */
-      #map {
-        position: relative;
-        width: 60vw;
-        max-width: 400px;
-        height: 60vw;
-        max-height: 400px;
-        border: 2px solid #0f0;
-        margin: 10px;
-        background: radial-gradient(circle at center, #003300 0, #000000 70%);
-        overflow: hidden;
-      }
-
-      #zoomMap {
-        position: relative;
-        width: 40vw;
-        max-width: 200px;
-        height: 40vw;
-        max-height: 200px;
-        border: 1px solid #0f0;
-        margin-top: 10px;
-        background: radial-gradient(circle at center, #003300 0, #000000 70%);
-        overflow: hidden;
-      }
-
-      .drone-dot,
-      .drone-icon {
-        position: absolute;
-      }
-
-      .dot-circle {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-      }
-
-      .dot-square {
-        width: 10px;
-        height: 10px;
-        background-color: #fff;
-      }
-
-      .dot-diamond {
-        width: 10px;
-        height: 10px;
-        background-color: #fff;
-        transform: rotate(45deg);
-      }
-
-      .dot-triangle {
-        width: 0;
-        height: 0;
-        border-left: 6px solid transparent;
-        border-right: 6px solid transparent;
-        border-bottom: 10px solid cyan;
-      }
-
-      .trail-dot {
-        position: absolute;
-        width: 4px;
-        height: 4px;
-        border-radius: 50%;
-        background-color: rgba(0, 255, 0, 0.3);
-      }
-
-      .radar-circle {
-        position: absolute;
-        border: 1px solid rgba(0, 255, 0, 0.3);
-        border-radius: 50%;
-      }
-
-      .radar-line {
-        position: absolute;
-        width: 2px;
-        height: 400px;
-        background: linear-gradient(
-          to bottom,
-          rgba(0, 255, 0, 0.7),
-          rgba(0, 255, 0, 0)
-        );
-        transform-origin: bottom center;
-        /* Optional CSS sweep – remove if JS controls rotation */
-        animation: sweep 2s linear infinite;
-      }
-
-      @keyframes sweep {
-        from {
-          transform: rotate(0deg);
-        }
-        to {
-          transform: rotate(360deg);
-        }
-      }
-
-      /* Controls panel */
-      #controls {
-        margin-left: 10px;
-        margin-bottom: 10px;
-        padding: 8px;
-        border: 1px solid #0f0;
-        max-width: 420px;
-        font-size: 0.9em;
-      }
-
-      #controls label {
-        display: block;
-        margin-top: 4px;
-      }
-
-      #controls input[type="range"] {
-        width: 200px;
-      }
-
-      /* Scenario editor */
-      #scenarioEditor {
-        margin-left: 10px;
-        margin-bottom: 8px;
-        padding: 8px;
-        border: 1px solid #0f0;
-        max-width: 420px;
-        font-size: 0.9em;
-      }
-
-      /* Legend / status */
-      #legend {
-        margin-left: 10px;
-        margin-bottom: 10px;
-        padding: 6px;
-        border: 1px solid #0f0;
-        max-width: 260px;
-        font-size: 0.85em;
-      }
-
-      .legend-box {
-        display: inline-block;
-        width: 14px;
-        height: 10px;
-        margin-right: 6px;
-      }
-
-      .legend-box.high {
-        background-color: red;
-      }
-
-      .legend-box.medium {
-        background-color: yellow;
-      }
-
-      .legend-box.low {
-        background-color: lime;
-      }
-
-      .legend-box.safe {
-        background-color: #004400;
-      }
-
-      /* Status / stats */
-      #statusBar,
-      #statsBar {
-        margin-left: 10px;
-        font-size: 0.9em;
-      }
-
-      #statusBar {
-        margin-bottom: 4px;
-      }
-
-      #statsBar {
-        margin-bottom: 8px;
-      }
-
-      /* Event log */
-      #log {
-        margin-left: 10px;
-        max-height: 150px;
-        overflow-y: auto;
-        font-size: 0.9em;
-      }
-
-      /* Small screens */
-      @media (max-width: 768px) {
-        #mainRow {
-          flex-direction: column;
-        }
-
-        #rightCol {
-          margin-left: 10px;
-          margin-top: 10px;
-        }
-
-        #map {
-          width: 90vw;
-          height: 90vw;
-        }
-
-        #zoomMap {
-          width: 70vw;
-          height: 70vw;
-        }
-      }
-    </style>
-  </head>
-
-  <body>
-    <h1>ChaosTech NSD Radar Prototype</h1>
-
-    <section id="about">
-      <strong>About</strong><br />
-      Real-time simulation of moving drones scored by a rule-based AI core with
-      adjustable sensitivity (RF, geometry, speed). Use the controls and
-      scenarios to explore how threat assessment changes.
+        <section
+          class="legend"
+          aria-label="Legend explaining threat, ally, and infrastructure symbols"
+        >
+          <h2>Legend</h2>
+          <div class="legend-item safe">
+            <span class="pattern-dot"></span> Safe hostile drone (0–30)
+          </div>
+          <div class="legend-item caution">
+            <span class="pattern-dash"></span> Caution (31–60)
+          </div>
+          <div class="legend-item threat">
+            <span class="pattern-cross"></span> Threat (61–80)
+          </div>
+          <div class="legend-item high-threat">
+            <span class="pattern-fill"></span> High Threat (81+)
+          </div>
+          <div class="legend-item jammed">
+            <span class="pattern-circle"></span> Jammed / Neutralized hostile
+          </div>
+          <div class="legend-item ally">
+            ● Allied drone
+          </div>
+          <div class="legend-item infra-critical">
+            ■ Critical infrastructure
+          </div>
+          <div class="legend-item infra-mobile">
+            ▲ Mobile unit
+          </div>
+          <div class="legend-item infra-land">
+            ⬛ Land base
+          </div>
+          <div class="legend-item infra-sea">
+            ◯ Sea base
+          </div>
+        </section>
+      </aside>
     </section>
 
-    <nav id="topControls" aria-label="Simulation controls">
-      <button id="calmBtn">Calm airspace</button>
-      <button id="attackBtn">Attack run</button>
-      <button id="pauseBtn">Pause</button>
-      <button id="jamBtn">Jam selected drone</button>
-      <span id="disruptModeLabel">Mode: Land in place</span>
-    </nav>
+    <section class="status-section" aria-label="AI status and weighting controls">
+      <div
+        id="statusBar"
+        class="status-bar"
+        aria-live="polite"
+        aria-label="Live simulation statistics"
+      >
+        Active: 0 | Jammed: 0 | Neutralized: 0
+      </div>
 
-    <section id="controls" aria-label="AI sensitivity controls">
-      <strong>AI Sensitivity Controls</strong>
-      <label>
-        RF weight:
-        <input
-          id="rfWeight"
-          type="range"
-          min="0"
-          max="2"
-          step="0.1"
-          value="1"
-          aria-label="RF weight"
-        />
-        <span id="rfWeightValue">1.0</span>
-      </label>
-      <label>
-        Center weight:
-        <input
-          id="centerWeight"
-          type="range"
-          min="0"
-          max="2"
-          step="0.1"
-          value="1"
-          aria-label="Center weight"
-        />
-        <span id="centerWeightValue">1.0</span>
-      </label>
-      <label>
-        Speed weight:
-        <input
-          id="speedWeight"
-          type="range"
-          min="0"
-          max="2"
-          step="0.1"
-          value="1"
-          aria-label="Speed weight"
-        />
-        <span id="speedWeightValue">1.0</span>
-      </label>
+      <div class="ai-controls">
+        <label>
+          AI Weights:
+          RF <input type="range" id="rfWeight" min="0" max="2" step="0.1" value="1" />
+          Center <input type="range" id="centerWeight" min="0" max="2" step="0.1" value="1" />
+          Speed <input type="range" id="speedWeight" min="0" max="2" step="0.1" value="1" />
+        </label>
+      </div>
     </section>
 
     <section
-      id="scenarioEditor"
-      aria-label="Custom drone scenario editor"
+      class="log-section"
+      role="complementary"
+      aria-label="Event log with filters"
     >
-      <strong>Scenario editor</strong><br />
-      <label>
-        Name:
-        <input
-          id="seName"
-          type="text"
-          value="Custom 1"
-          style="width:90px;"
-        />
-      </label>
-      <label>
-        X (0–100):
-        <input
-          id="seX"
-          type="number"
-          min="0"
-          max="100"
-          value="20"
-          style="width:60px;"
-        />
-      </label>
-      <label>
-        Y (0–100):
-        <input
-          id="seY"
-          type="number"
-          min="0"
-          max="100"
-          value="20"
-          style="width:60px;"
-        />
-      </label>
-      <label>
-        Speed:
-        <input
-          id="seSpeed"
-          type="number"
-          min="0"
-          max="5"
-          step="0.1"
-          value="0.8"
-          style="width:60px;"
-        />
-      </label>
-      <label>
-        Heading (deg):
-        <input
-          id="seHeading"
-          type="number"
-          min="0"
-          max="359"
-          value="45"
-          style="width:60px;"
-        />
-      </label>
-      <label>
-        RF:
-        <input
-          id="seRF"
-          type="number"
-          min="0"
-          max="100"
-          value="80"
-          style="width:60px;"
-        />
-      </label>
-      <button id="seAddBtn" style="margin-top:6px;">Add custom drone</button>
-      <div id="seNote" style="margin-top:4px; color:#0f0;"></div>
+      <h2>
+        Event Log
+        <span class="log-controls">
+          <select id="logFilter" aria-label="Filter log entries">
+            <option value="all">All</option>
+            <option value="threat">Threats</option>
+            <option value="jam">Jams</option>
+            <option value="neutralized">Neutralized</option>
+            <option value="infra">Infrastructure</option>
+          </select>
+          <button id="clearLog" aria-label="Clear event log">Clear</button>
+        </span>
+      </h2>
+      <div
+        id="log"
+        class="event-log"
+        role="log"
+        aria-live="polite"
+        aria-relevant="additions text"
+      ></div>
     </section>
+  </main>
 
-    <div
-      id="statusBar"
-      aria-live="polite"
-      aria-label="Drone status summary"
-    >
-      Active: 0 | Jammed: 0 | Neutralized: 0
-    </div>
-
-    <div
-      id="statsBar"
-      aria-live="polite"
-      aria-label="Run statistics"
-    >
-      Run time: 0 s | Neutralized: 0 | Max concurrent intruders: 0
-    </div>
-
-    <main id="mainRow">
-      <section id="leftCol">
-        <div
-          id="map"
-          role="img"
-          aria-label="Radar map showing drones and threat levels"
-        ></div>
-
-        <aside
-          id="legend"
-          aria-label="Threat level legend"
-        >
-          <strong>Threat Legend</strong><br />
-          <span class="legend-box high"></span> High (score ≥ 70)<br />
-          <span class="legend-box medium"></span> Medium (40–69)<br />
-          <span class="legend-box low"></span> Low (10–39)<br />
-          <span class="legend-box safe"></span> Safe (&lt; 10)
-        </aside>
-      </section>
-
-      <aside id="rightCol" aria-label="Inner ring zoom and status icons">
-        <strong>Inner ring zoom</strong>
-        <div
-          id="zoomMap"
-          role="img"
-          aria-label="Zoomed view of inner protection ring"
-        ></div>
-        <div style="margin-top:6px;">
-          ■ = Landed<br />
-          ◆ = Returned<br />
-          ▲ = Jammed<br />
-          ● = Active
-        </div>
-      </aside>
-    </main>
-
-    <h2 style="margin-left:10px;">Event Log</h2>
-    <div
-      id="log"
-      aria-label="Simulation event log"
-    ></div>
-
-    <script src="ai_core.js"></script>
-    <script src="scenarios.js"></script>
-    <script src="radar_ui.js"></script>
-  </body>
+  <script src="ai_core.js"></script>
+  <script src="scenarios.js"></script>
+  <script src="radar_ui.js"></script>
+</body>
 </html>
+
