@@ -1,43 +1,54 @@
-# ChaosTech NSD Radar Prototype
+# ChaosTech NSD Field Grid Prototype
 
-Real-time counter‑drone sandbox that simulates multiple drones, scores their threat level, and lets an operator jam/neutralize intruders around a protected base. [web:325][web:330]
+Real‑time counter‑UAS sandbox that simulates hostile swarms, allied assets, and US drones over a rectangular base‑defense grid. The prototype shows how an NSD‑style AI could visualize, score, and disrupt multiple drones in one view.
 
-## What it shows
+## Demo Overview
 
-- **Dynamic radar UI** with moving drone tracks, trails, and a rotating sweep.
-- **Rule-based AI core** that scores threat by RF strength, geometry (distance to center), and speed.
-- **Automatic & manual disruption**:
-  - Auto-jam when a drone’s score crosses a threshold.
-  - Click a track and use **Jam selected drone** to trigger manual jamming.
-  - Jammed drones either **land in place** or **return to home**, depending on mode.
-- **Protected base & no‑fly bubble**:
-  - Central white square = critical asset.
-  - Red inner ring = no‑fly radius.
-  - Breach events are logged when drones penetrate the bubble.
-- **Inner-ring zoom** panel that magnifies only the closest tracks.
-- **Live effectiveness stats**:
-  - Active / Jammed / Neutralized counts.
-  - Run time, total neutralized, max concurrent intruders.
-  - Breaches, stopped after breach, and drones that reached the base.
+- Rectangular **field grid** with center “protected core” box.
+- Hostile drones (swarm + patrol) with threat scoring based on RF strength, geometry, speed, and proximity to infrastructure.
+- **Allied / US drones** rendered as blue tracks that are never jammed (IFF‑positive).
+- **Global disruption** control: “Jam all drones” captures all hostile drones at once, then applies one of three modes:
+  - Land in place
+  - Return to base
+  - Push to safe corridor
+- Clickable drone list and map selection for quick inspection.
+- Event log with filters for threats, jams, neutralization, and infrastructure events.
 
-## How to run
+## Features
 
-1. Clone or download this repo.
-2. Open `index.html` in a modern browser (Chrome/Edge/Firefox). No build step, no backend. [web:254]
-3. For best results, view on desktop or laptop.
+- **AI threat model**  
+  JavaScript function that returns a 0–100 score plus human‑readable reasons for each hostile drone (RF, core zone, near infrastructure, high speed, etc.).
 
-## How to play with it
+- **Allies & US drones**  
+  Allies are added from a dedicated form, stored separately from hostiles, and rendered with distinct color and trails. The AI always treats them as safe and excludes them from global jamming.
 
-1. Start with **Calm airspace** to see benign traffic.
-2. Click **Attack run** to spawn multiple hostile drones.
-3. Adjust the **RF / Center / Speed** sliders to change how aggressive the AI is.
-4. Click a drone’s status line to mark it `[SELECTED]`, then press **Jam selected drone**.
-5. Toggle disruption mode between **Land in place** and **Return to home** and watch how dots and stats change.
+- **Scenario + infrastructure editor**  
+  - Buttons for “Calm airspace” and “Attack run” load canned scenarios.
+  - Custom hostile drones can be injected with name, position, speed, heading, and RF.
+  - Infrastructure markers (critical sites, land bases, sea bases, mobile units) can be added anywhere on the grid and feed into threat scoring.
+
+- **Accessibility & UI**  
+  - Uses semantic landmarks (`header`, `main`, complementary sections) and `role="log"` on the event feed.
+  - Color‑plus‑pattern legend to help colorblind users distinguish threat levels and infrastructure types.
+  - Screen‑reader‑friendly drone list that mirrors what is drawn on the canvas.
+
+## How to Run
+
+1. Clone the repo.
+2. Open `index.html` directly in a modern browser (Chrome, Edge, Firefox).
+3. No build step or backend is required; everything runs client‑side in vanilla HTML/CSS/JS.
 
 ## Files
 
-- `index.html` – UI layout, styles, and wiring of JS files.
-- `ai_core.js` – Rule-based threat scoring logic.
-- `scenarios.js` – Calm and attack drone scenarios.
-- `radar_ui.js` – Radar visualization, animation loop, disruption logic, stats, and logs.
+- `index.html` – layout, ARIA landmarks, controls, and panels.
+- `styles.css` – green‑on‑black radar styling, responsive grid layout, legend, and log.
+- `ai_core.js` – NSD “brain” for threat scoring, global jamming, and status updates.
+- `scenarios.js` – calm / attack scenarios plus default allied drones.
+- `radar_ui.js` – canvas rendering, movement loop, editors, and event log wiring.
+
+## Roadmap
+
+- Add time‑to‑impact estimates and predicted intercept points.
+- Visualize aggregate risk over time as a strip chart.
+- Experiment with more detailed NATO 2525‑style symbology for friendly vs hostile vs neutral contacts.
 
