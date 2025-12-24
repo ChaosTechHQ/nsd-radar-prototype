@@ -27,28 +27,15 @@ function decideDroneStatus(drone) {
     };
   }
 
+  // Distance to notional grid center (kept but down‑weighted)
   const dx = drone.x - 50;
   const dy = drone.y - 50;
   const distanceToCenter = Math.sqrt(dx * dx + dy * dy);
 
-  let infraBoost = 0;
-  let closeInfra = null;
-  infraMarkers.forEach(m => {
-    const ddx = drone.x - m.x;
-    const ddy = drone.y - m.y;
-    const d = Math.sqrt(ddx * ddx + ddy * ddy);
-    if (d < 10) {
-      const base = m.type === 'critical' ? 30 : 15;
-      if (base > infraBoost) {
-        infraBoost = base;
-        closeInfra = m;
-      }
-    }
-  });
-
   let score = 0;
   let reasons = [];
 
+  // 1) RF strength
   if (drone.rfStrength > 80) {
     score += 40 * weights.rf;
     reasons.push('strong RF');
@@ -57,24 +44,53 @@ function decideDroneStatus(drone) {
     reasons.push('medium RF');
   }
 
+  // 2) Light center influence (just to keep the middle meaningful)
   if (distanceToCenter < 20) {
-    score += 35 * weights.center;
-    reasons.push('core zone');
-  } else if (distanceToCenter < 35) {
-    score += 15 * weights.center;
-    reasons.push('inner band');
+    score += 10 * weights.center;
+    reasons.push('near central grid');
   }
 
+  // 3) Speed
   if (drone.speed > 20) {
     score += 25 * weights.speed;
     reasons.push('high speed');
   }
+
+  // 4) Infrastructure proximity – ANY marker becomes a mini-base
+  let infraBoost = 0;
+  let closeInfra = null;
+
+  infraMarkers.forEach(m => {
+    const ddx = drone.x - m.x;
+    const ddy = drone.y - m.y;
+    const d = Math.sqrt(ddx * ddx + ddy * ddy);
+
+    // Critical sites count more than others
+    const base = m.type === 'critical' ? 35 : 20;
+
+    if (d < 10) {
+      // Very close to asset – highest threat
+      const boost = base + 20;
+      if (boost > infraBoost) {
+        infraBoost = boost;
+        closeInfra = m;
+      }
+    } else if (d < 25) {
+      // In the approach band of that asset
+      const boost = base;
+      if (boost > infraBoost) {
+        infraBoost = boost;
+        closeInfra = m;
+      }
+    }
+  });
 
   if (infraBoost > 0 && closeInfra) {
     score += infraBoost;
     reasons.push(`near ${closeInfra.label}`);
   }
 
+  // Clamp and return
   score = Math.min(100, score);
 
   return {
